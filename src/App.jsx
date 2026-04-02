@@ -6,7 +6,7 @@ import Hero from './components/Hero'
 import Skills from './components/Skills'
 import Projects from './components/Projects'
 import CurrentlyBuilding from './components/CurrentlyBuilding'
-import GuestBook from './components/GuestBook'
+import Guestbook from './components/Guestbook'
 import Contact from './components/Contact'
 import Navbar from './components/Navbar'
 
@@ -30,7 +30,7 @@ function Portfolio() {
       <Skills />
       <Projects />
       <CurrentlyBuilding />
-      <GuestBook />
+      <Guestbook />
       <Contact />
     </div>
   )

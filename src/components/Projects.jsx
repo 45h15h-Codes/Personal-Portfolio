@@ -2,29 +2,42 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import ProjectModal from './ProjectModal'
 
-function Tag({ children }) {
-  return (
-    <span
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.65rem',
-        fontWeight: 700,
-        color: 'var(--ink)',
-        border: 'var(--border)',
-        padding: '0.2rem 0.5rem',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        backgroundColor: 'var(--bg)',
-        display: 'inline-block',
-      }}
-    >
-      {children}
-    </span>
-  )
+function Tag({ children, variant = 'default' }) {
+  const styles = {
+    default: {
+      fontFamily: 'var(--font-mono)',
+      fontSize: '0.6rem',
+      fontWeight: 700,
+      color: 'var(--ink)',
+      border: 'var(--border)',
+      padding: '0.15rem 0.45rem',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      backgroundColor: 'var(--bg)',
+      display: 'inline-block',
+    },
+    inverted: {
+      fontFamily: 'var(--font-mono)',
+      fontSize: '0.6rem',
+      fontWeight: 700,
+      color: 'var(--ink)',
+      border: '2px solid var(--bg)',
+      padding: '0.15rem 0.45rem',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      backgroundColor: 'var(--bg)',
+      display: 'inline-block',
+    },
+  }
+  return <span style={styles[variant]}>{children}</span>
 }
 
-function FeaturedProject({ project, onClick }) {
+/* ============================================
+   FEATURED HERO CARD — Horizontal layout
+   ============================================ */
+function FeaturedCard({ project, onClick }) {
   const year = new Date(project.created_at).getFullYear()
+
   return (
     <div
       id="featured-project"
@@ -33,21 +46,21 @@ function FeaturedProject({ project, onClick }) {
         backgroundColor: 'var(--ink)',
         border: 'var(--border)',
         boxShadow: 'var(--shadow-lg)',
-        padding: '0',
-        marginBottom: '1.5rem',
-        transition: 'all 0.2s ease',
         position: 'relative',
         overflow: 'hidden',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
         animation: 'fadeUp 0.6s ease forwards',
         opacity: 0,
         willChange: 'transform',
         cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column'
+        transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        marginBottom: '1.5rem',
+        minHeight: '340px',
       }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translate(-3px, -3px)'
-        e.currentTarget.style.boxShadow = '9px 9px 0px rgba(10,10,10,0.8)'
+        e.currentTarget.style.boxShadow = '10px 10px 0px rgba(10,10,10,0.9)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = 'translate(0, 0)'
@@ -61,40 +74,73 @@ function FeaturedProject({ project, onClick }) {
           position: 'absolute',
           top: 0,
           right: 0,
-          width: '120px',
-          height: '120px',
+          width: '100px',
+          height: '100px',
           backgroundColor: 'var(--red)',
           clipPath: 'polygon(100% 0, 100% 100%, 0 0)',
-          zIndex: 10
+          zIndex: 10,
         }}
       />
 
-      {/* Thumbnail Area */}
-      {project.thumbnail && (
-        <div style={{ width: '100%', height: 'clamp(200px, 30vw, 280px)', backgroundColor: 'var(--bg)', borderBottom: 'var(--border)' }}>
-          <img src={project.thumbnail} alt={project.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-      )}
+      {/* Thumbnail — Left */}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: '#1a1a1a',
+          borderRight: 'var(--border)',
+          overflow: 'hidden',
+        }}
+      >
+        {project.thumbnail ? (
+          <img
+            src={project.thumbnail}
+            alt={project.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.5s ease',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.15,
+            }}
+          >
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '8rem', fontWeight: 900, color: '#fff' }}>
+              {project.title.charAt(0)}
+            </span>
+          </div>
+        )}
+      </div>
 
-      {/* Content Area */}
-      <div style={{ position: 'relative', padding: 'clamp(1.5rem, 4vw, 3rem)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+      {/* Content — Right */}
+      <div style={{ padding: 'clamp(1.5rem, 3vw, 2.5rem)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1rem', position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span
             style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.65rem',
+              fontSize: '0.6rem',
               fontWeight: 700,
               color: 'var(--ink)',
               backgroundColor: 'var(--yellow)',
-              border: '2px solid var(--bg)',
+              border: '2px solid var(--ink)',
               padding: '0.2rem 0.6rem',
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
+              boxShadow: '2px 2px 0 rgba(0,0,0,0.3)',
             }}
           >
-            ★ Featured Project
+            ★ Featured
           </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)' }}>
             {year}
           </span>
         </div>
@@ -103,9 +149,8 @@ function FeaturedProject({ project, onClick }) {
           style={{
             fontFamily: 'var(--font-display)',
             fontWeight: 900,
-            fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
+            fontSize: 'clamp(1.4rem, 2.5vw, 2rem)',
             color: '#fff',
-            marginBottom: '1rem',
             lineHeight: 1.1,
           }}
         >
@@ -114,38 +159,26 @@ function FeaturedProject({ project, onClick }) {
 
         <p
           style={{
-            color: 'rgba(255,255,255,0.65)',
-            fontSize: '0.95rem',
-            maxWidth: '600px',
-            marginBottom: '1.5rem',
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: '0.9rem',
             lineHeight: 1.7,
+            display: '-webkit-box',
+            WebkitLineClamp: 4,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
           }}
         >
           {project.description}
         </p>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}>
-          {project.tags?.map((tag) => (
-            <span
-              key={tag}
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                color: 'var(--ink)',
-                border: '2px solid var(--bg)',
-                padding: '0.2rem 0.5rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                backgroundColor: 'var(--bg)',
-              }}
-            >
-              {tag}
-            </span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          {project.tags?.slice(0, 5).map(tag => (
+            <Tag key={tag} variant="inverted">{tag}</Tag>
           ))}
+          {project.tags?.length > 5 && <Tag variant="inverted">+{project.tags.length - 5}</Tag>}
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
           {project.github_link && (
             <a
               href={project.github_link}
@@ -155,10 +188,10 @@ function FeaturedProject({ project, onClick }) {
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
-                fontSize: '0.8rem',
+                fontSize: '0.7rem',
                 color: 'var(--ink)',
                 backgroundColor: 'var(--yellow)',
-                padding: '0.65rem 1.25rem',
+                padding: '0.5rem 1rem',
                 border: '2px solid var(--bg)',
                 boxShadow: '3px 3px 0 var(--bg)',
                 textTransform: 'uppercase',
@@ -174,7 +207,7 @@ function FeaturedProject({ project, onClick }) {
                 e.currentTarget.style.boxShadow = '3px 3px 0 var(--bg)'
               }}
             >
-              View on GitHub →
+              GitHub →
             </a>
           )}
           {project.demo_link && (
@@ -186,25 +219,19 @@ function FeaturedProject({ project, onClick }) {
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
-                fontSize: '0.8rem',
+                fontSize: '0.7rem',
                 color: '#fff',
                 backgroundColor: 'transparent',
-                padding: '0.65rem 1.25rem',
-                border: '2px solid rgba(255,255,255,0.4)',
+                padding: '0.5rem 1rem',
+                border: '2px solid rgba(255,255,255,0.3)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
                 transition: 'all 0.2s ease',
               }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = '#fff'
-                e.currentTarget.style.transform = 'translate(-2px, -2px)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'
-                e.currentTarget.style.transform = 'translate(0, 0)'
-              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
             >
-              Live Demo ↗
+              Demo ↗
             </a>
           )}
         </div>
@@ -213,51 +240,136 @@ function FeaturedProject({ project, onClick }) {
   )
 }
 
-function SmallProject({ project, delay, onClick }) {
+/* ============================================
+   ASYMMETRIC PROJECT CARD
+   ============================================ */
+function ProjectCard({ project, size = 'normal', delay = 0, onClick, rotation = 0 }) {
   const year = new Date(project.created_at).getFullYear()
+  const isWide = size === 'wide'
+  const isTall = size === 'tall'
+
+  const gridStyles = {
+    wide: { gridColumn: 'span 2' },
+    tall: { gridColumn: 'span 1', gridRow: 'span 2' },
+    normal: { gridColumn: 'span 1' },
+  }
+
   return (
     <div
       onClick={onClick}
       style={{
+        ...gridStyles[size],
         backgroundColor: 'var(--bg)',
         border: 'var(--border)',
         boxShadow: 'var(--shadow)',
-        padding: '0',
-        transition: 'all 0.2s ease',
+        position: 'relative',
+        overflow: 'hidden',
+        display: isTall ? 'flex' : (isWide ? 'grid' : 'flex'),
+        flexDirection: 'column',
+        gridTemplateColumns: isWide ? '1.2fr 1fr' : undefined,
         opacity: 0,
         animation: `fadeUp 0.6s ease forwards ${delay}s`,
-        display: 'flex',
-        flexDirection: 'column',
         willChange: 'transform',
-        cursor: 'pointer'
+        cursor: 'pointer',
+        transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        transform: `rotate(${rotation}deg)`,
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translate(-2px, -2px)'
-        e.currentTarget.style.boxShadow = 'var(--shadow-lg)'
+        e.currentTarget.style.transform = `rotate(0deg) translate(-3px, -3px)`
+        e.currentTarget.style.boxShadow = '8px 8px 0px rgba(10,10,10,0.9)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.transform = 'translate(0, 0)'
+        e.currentTarget.style.transform = `rotate(${rotation}deg) translate(0, 0)`
         e.currentTarget.style.boxShadow = 'var(--shadow)'
       }}
     >
+      {/* Decorative accent */}
+      {(isWide || isTall) && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            bottom: '-15px',
+            right: '-15px',
+            width: '60px',
+            height: '60px',
+            backgroundColor: 'var(--yellow)',
+            transform: 'rotate(45deg)',
+            zIndex: 0,
+            opacity: 0.6,
+          }}
+        />
+      )}
+
       {/* Thumbnail */}
-      <div style={{ width: '100%', height: '180px', backgroundColor: 'var(--yellow)', borderBottom: 'var(--border)', overflow: 'hidden' }}>
+      <div
+        style={{
+          width: '100%',
+          height: isTall ? '55%' : isWide ? '100%' : '170px',
+          minHeight: isTall ? '200px' : isWide ? '200px' : '140px',
+          backgroundColor: 'var(--yellow)',
+          borderBottom: !isWide ? 'var(--border)' : 'none',
+          borderRight: isWide ? 'var(--border)' : 'none',
+          overflow: 'hidden',
+          flexShrink: 0,
+        }}
+      >
         {project.thumbnail ? (
-           <img src={project.thumbnail} alt={project.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img
+            src={project.thumbnail}
+            alt={project.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transition: 'transform 0.4s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+          />
         ) : (
-           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '4rem', fontWeight: 900, color: 'var(--ink)' }}>{project.title.charAt(0)}</span>
-           </div>
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.15,
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: isTall ? '6rem' : '4rem',
+                fontWeight: 900,
+                color: 'var(--ink)',
+              }}
+            >
+              {project.title.charAt(0)}
+            </span>
+          </div>
         )}
       </div>
 
       {/* Content */}
-      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+      <div
+        style={{
+          padding: isTall ? '1.25rem' : '1.25rem 1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.6rem',
+          flex: 1,
+          position: 'relative',
+          zIndex: 1,
+          justifyContent: isWide ? 'center' : 'flex-start',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span
             style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.65rem',
+              fontSize: '0.6rem',
               color: 'var(--light-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
@@ -286,32 +398,67 @@ function SmallProject({ project, delay, onClick }) {
           )}
         </div>
 
-      <h3
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontWeight: 900,
-          fontSize: '1.1rem',
-          color: 'var(--ink)',
-          lineHeight: 1.2,
-        }}
-      >
-        {project.title}
-      </h3>
+        <h3
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontWeight: 900,
+            fontSize: isWide ? '1.2rem' : '1rem',
+            color: 'var(--ink)',
+            lineHeight: 1.2,
+          }}
+        >
+          {project.title}
+        </h3>
 
-      <p style={{ fontSize: '0.875rem', color: 'var(--muted)', lineHeight: 1.6, flex: 1 }}>
-        {project.description}
-      </p>
+        <p
+          style={{
+            fontSize: '0.8rem',
+            color: 'var(--muted)',
+            lineHeight: 1.6,
+            flex: 1,
+            display: '-webkit-box',
+            WebkitLineClamp: isTall ? 6 : isWide ? 4 : 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {project.description}
+        </p>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.25rem' }}>
-        {project.tags?.map((tag) => (
-          <Tag key={tag}>{tag}</Tag>
-        ))}
-      </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: 'auto' }}>
+          {project.tags?.slice(0, isWide ? 5 : 4).map(tag => (
+            <Tag key={tag}>{tag}</Tag>
+          ))}
+          {project.tags?.length > (isWide ? 5 : 4) && (
+            <Tag>+{project.tags.length - (isWide ? 5 : 4)}</Tag>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
+/* ============================================
+   SIZE + ROTATION PATTERNS
+   ============================================ */
+function getCardSize(index, total) {
+  if (total === 1) return 'wide'
+  if (total === 2) return index === 0 ? 'wide' : 'normal'
+  
+  // Asymmetric pattern that creates visual rhythm
+  const patterns = ['tall', 'normal', 'wide', 'normal', 'normal', 'tall', 'wide', 'normal']
+  return patterns[index % patterns.length]
+}
+
+function getCardRotation(index) {
+  // Subtle random-looking rotations for organic feel
+  const rotations = [0.4, -0.3, 0, 0.5, -0.4, 0, 0.3, -0.5]
+  return rotations[index % rotations.length]
+}
+
+/* ============================================
+   MAIN COMPONENT
+   ============================================ */
 export default function Projects() {
   const [projects, setProjects] = useState([])
   const [selectedProject, setSelectedProject] = useState(null)
@@ -325,7 +472,7 @@ export default function Projects() {
   if (projects.length === 0) return null
 
   const featured = projects.find((p) => p.featured)
-  const small = projects.filter((p) => !p.featured)
+  const others = projects.filter((p) => !p.featured)
 
   return (
     <section
@@ -337,6 +484,7 @@ export default function Projects() {
       }}
     >
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Section Header */}
         <div style={{ marginBottom: '3rem' }}>
           <span
             style={{
@@ -374,25 +522,74 @@ export default function Projects() {
           </h2>
         </div>
 
-        {featured && <FeaturedProject project={featured} onClick={() => setSelectedProject(featured)} />}
+        {/* Featured Project — Horizontal hero card */}
+        {featured && (
+          <FeaturedCard
+            project={featured}
+            onClick={() => setSelectedProject(featured)}
+          />
+        )}
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '1.5rem',
-          }}
-        >
-          {small.map((project, i) => (
-            <SmallProject key={project.id} project={project} delay={0.2 + i * 0.15} onClick={() => setSelectedProject(project)} />
-          ))}
-        </div>
+        {/* Asymmetric Grid for other projects */}
+        {others.length > 0 && (
+          <div
+            className="asymmetric-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridAutoRows: 'minmax(280px, auto)',
+              gap: '1.5rem',
+            }}
+          >
+            {others.map((project, i) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                size={getCardSize(i, others.length)}
+                delay={0.15 + i * 0.12}
+                rotation={getCardRotation(i)}
+                onClick={() => setSelectedProject(project)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      <ProjectModal 
-        project={selectedProject} 
-        onClose={() => setSelectedProject(null)} 
+      <ProjectModal
+        project={selectedProject}
+        onClose={() => setSelectedProject(null)}
       />
+
+      {/* Responsive overrides */}
+      <style>{`
+        @media (max-width: 900px) {
+          #featured-project {
+            grid-template-columns: 1fr !important;
+            min-height: auto !important;
+          }
+          #featured-project > div:first-child {
+            height: 220px !important;
+            border-right: none !important;
+            border-bottom: var(--border) !important;
+          }
+          .asymmetric-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .asymmetric-grid > div {
+            grid-column: span 1 !important;
+            grid-row: span 1 !important;
+            transform: rotate(0deg) !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .asymmetric-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .asymmetric-grid > div {
+            min-height: 260px !important;
+          }
+        }
+      `}</style>
     </section>
   )
 }

@@ -10,7 +10,7 @@ export default function BuildingAdmin() {
     title: '',
     description: '',
     progress: 50,
-    status: 'in-progress'
+    is_live: false
   })
   
   const [formError, setFormError] = useState('')
@@ -39,7 +39,7 @@ export default function BuildingAdmin() {
       title: formData.title.trim(),
       description: formData.description.trim(),
       progress: parseInt(formData.progress, 10),
-      status: formData.status
+      is_live: formData.is_live
     }
 
     const { error } = await supabase.from('building').insert([newBuild])
@@ -47,7 +47,7 @@ export default function BuildingAdmin() {
     if (error) {
       setFormError('Failed to log update: ' + error.message)
     } else {
-      setFormData({ title: '', description: '', progress: 50, status: 'in-progress' })
+      setFormData({ title: '', description: '', progress: 50, is_live: false })
       await fetchBuilds()
     }
 
@@ -117,13 +117,17 @@ export default function BuildingAdmin() {
           </div>
 
           <div>
-             <label style={labelStyle}>Status</label>
-             <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} style={inputStyle} disabled={loading}>
-                <option value="planning">Planning</option>
-                <option value="in-progress">In Progress</option>
-                <option value="testing">Testing</option>
-                <option value="shipped">Shipped</option>
-             </select>
+             <label style={labelStyle}>Live Status</label>
+             <div style={{ display: 'flex', alignItems: 'center', height: '100%', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <input 
+                type="checkbox" 
+                checked={formData.is_live} 
+                onChange={e => setFormData({...formData, is_live: e.target.checked})} 
+                style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--ink)' }} 
+                disabled={loading} 
+              />
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>Is Project Live?</span>
+             </div>
           </div>
 
           <div>
@@ -166,7 +170,7 @@ export default function BuildingAdmin() {
             <div style={{ flex: 1, paddingRight: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1.2rem', margin: 0 }}>{b.title}</h3>
-                <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', backgroundColor: 'var(--yellow)', padding: '0.1rem 0.4rem', border: '1px solid var(--ink)' }}>{b.status}</span>
+                <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', backgroundColor: b.is_live ? 'var(--red)' : 'var(--yellow)', color: b.is_live ? '#fff' : 'inherit', padding: '0.1rem 0.4rem', border: '1px solid var(--ink)' }}>{b.is_live ? 'LIVE' : 'BUILDING'}</span>
               </div>
               <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--ink)', margin: '0 0 1rem 0' }}>{b.description}</p>
               

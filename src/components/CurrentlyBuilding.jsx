@@ -96,6 +96,7 @@ function BuildingCard({ item, delay }) {
                 height: '100%',
                 width: `${item.progress}%`,
                 backgroundColor: item.progress > 50 ? 'var(--ink)' : 'var(--red)',
+                '--target-width': `${item.progress}%`,
                 animation: `growWidth 1.2s ease forwards ${delay + 0.3}s`,
               }}
             />
@@ -114,24 +115,30 @@ function BuildingCard({ item, delay }) {
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: item.progress > 50 ? 'var(--ink)' : 'var(--bg)',
-          flexDirection: 'column',
-          gap: '0.1rem',
         }}
       >
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 900,
-            fontSize: '1.1rem',
-            color: item.progress > 50 ? '#fff' : 'var(--ink)',
-            lineHeight: 1,
-          }}
-        >
-          {item.progress}
-        </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.5rem', color: item.progress > 50 ? 'rgba(255,255,255,0.6)' : 'var(--light-muted)', textTransform: 'uppercase' }}>
-          %
-        </span>
+        <div style={{ display: 'flex', alignItems: 'baseline' }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 900,
+              fontSize: '1.25rem',
+              color: item.progress > 50 ? '#fff' : 'var(--ink)',
+              lineHeight: 1,
+            }}
+          >
+            {item.progress}
+          </span>
+          <span style={{ 
+              fontFamily: 'var(--font-mono)', 
+              fontSize: '0.75rem', 
+              fontWeight: 900,
+              color: item.progress > 50 ? 'rgba(255,255,255,0.6)' : 'var(--light-muted)', 
+              marginLeft: '2px'
+            }}>
+            %
+          </span>
+        </div>
       </div>
     </div>
   )

@@ -3,6 +3,9 @@ CREATE TABLE projects (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   title text NOT NULL,
   description text NOT NULL,
+  detailed_description text,
+  thumbnail text,
+  images text[] DEFAULT '{}',
   tags text[] NOT NULL,
   demo_link text,
   github_link text,
@@ -128,3 +131,8 @@ CREATE TABLE contact_messages (
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can insert contact messages" ON contact_messages FOR INSERT WITH CHECK (true);
 CREATE POLICY "Admin can do everything on contact messages" ON contact_messages FOR ALL USING (auth.role() = 'authenticated');
+
+-- 8. Storage Buckets (Run manually in Supabase SQL Editor if buckets UI is preferred)
+INSERT INTO storage.buckets (id, name, public) VALUES ('project_images', 'project_images', true);
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING ( bucket_id = 'project_images' );
+CREATE POLICY "Admin CRUD" ON storage.objects FOR ALL USING ( auth.role() = 'authenticated' AND bucket_id = 'project_images' );

@@ -211,7 +211,7 @@ export default function Contact() {
               {socialLinks.map((social) => (
                 <a
                   key={social.id}
-                  href={social.url}
+                  href={social.url.startsWith('http') ? social.url : `https://${social.url}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{

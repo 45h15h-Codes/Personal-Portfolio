@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import ProjectModal from './ProjectModal'
 
 function Tag({ children }) {
   return (
@@ -22,16 +23,17 @@ function Tag({ children }) {
   )
 }
 
-function FeaturedProject({ project }) {
+function FeaturedProject({ project, onClick }) {
   const year = new Date(project.created_at).getFullYear()
   return (
     <div
       id="featured-project"
+      onClick={onClick}
       style={{
         backgroundColor: 'var(--ink)',
         border: 'var(--border)',
         boxShadow: 'var(--shadow-lg)',
-        padding: 'clamp(1.5rem, 4vw, 3rem)',
+        padding: '0',
         marginBottom: '1.5rem',
         transition: 'all 0.2s ease',
         position: 'relative',
@@ -39,6 +41,9 @@ function FeaturedProject({ project }) {
         animation: 'fadeUp 0.6s ease forwards',
         opacity: 0,
         willChange: 'transform',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column'
       }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translate(-3px, -3px)'
@@ -49,6 +54,7 @@ function FeaturedProject({ project }) {
         e.currentTarget.style.boxShadow = 'var(--shadow-lg)'
       }}
     >
+      {/* Decorative Corner */}
       <div
         aria-hidden="true"
         style={{
@@ -59,10 +65,19 @@ function FeaturedProject({ project }) {
           height: '120px',
           backgroundColor: 'var(--red)',
           clipPath: 'polygon(100% 0, 100% 100%, 0 0)',
+          zIndex: 10
         }}
       />
 
-      <div style={{ position: 'relative' }}>
+      {/* Thumbnail Area */}
+      {project.thumbnail && (
+        <div style={{ width: '100%', height: 'clamp(200px, 30vw, 280px)', backgroundColor: 'var(--bg)', borderBottom: 'var(--border)' }}>
+          <img src={project.thumbnail} alt={project.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
+      )}
+
+      {/* Content Area */}
+      <div style={{ position: 'relative', padding: 'clamp(1.5rem, 4vw, 3rem)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
           <span
             style={{
@@ -135,6 +150,7 @@ function FeaturedProject({ project }) {
             <a
               href={project.github_link}
               target="_blank"
+              onClick={e => e.stopPropagation()}
               rel="noopener noreferrer"
               style={{
                 fontFamily: 'var(--font-mono)',
@@ -165,6 +181,7 @@ function FeaturedProject({ project }) {
             <a
               href={project.demo_link}
               target="_blank"
+              onClick={e => e.stopPropagation()}
               rel="noopener noreferrer"
               style={{
                 fontFamily: 'var(--font-mono)',
@@ -196,22 +213,23 @@ function FeaturedProject({ project }) {
   )
 }
 
-function SmallProject({ project, delay }) {
+function SmallProject({ project, delay, onClick }) {
   const year = new Date(project.created_at).getFullYear()
   return (
     <div
+      onClick={onClick}
       style={{
         backgroundColor: 'var(--bg)',
         border: 'var(--border)',
         boxShadow: 'var(--shadow)',
-        padding: '1.5rem',
+        padding: '0',
         transition: 'all 0.2s ease',
         opacity: 0,
         animation: `fadeUp 0.6s ease forwards ${delay}s`,
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.75rem',
         willChange: 'transform',
+        cursor: 'pointer'
       }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = 'translate(-2px, -2px)'
@@ -222,37 +240,51 @@ function SmallProject({ project, delay }) {
         e.currentTarget.style.boxShadow = 'var(--shadow)'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.65rem',
-            color: 'var(--light-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-          }}
-        >
-          {year}
-        </span>
-        {(project.demo_link || project.github_link) && (
-          <a
-            href={project.demo_link || project.github_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '1.1rem',
-              color: 'var(--ink)',
-              transition: 'transform 0.2s',
-              display: 'inline-block',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translate(2px, -2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translate(0, 0)' }}
-          >
-            ↗
-          </a>
+      {/* Thumbnail */}
+      <div style={{ width: '100%', height: '180px', backgroundColor: 'var(--yellow)', borderBottom: 'var(--border)', overflow: 'hidden' }}>
+        {project.thumbnail ? (
+           <img src={project.thumbnail} alt={project.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '4rem', fontWeight: 900, color: 'var(--ink)' }}>{project.title.charAt(0)}</span>
+           </div>
         )}
       </div>
+
+      {/* Content */}
+      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.65rem',
+              color: 'var(--light-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+            }}
+          >
+            {year}
+          </span>
+          {(project.demo_link || project.github_link) && (
+            <a
+              href={project.demo_link || project.github_link}
+              target="_blank"
+              onClick={e => e.stopPropagation()}
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '1.1rem',
+                color: 'var(--ink)',
+                transition: 'transform 0.2s',
+                display: 'inline-block',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translate(2px, -2px)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translate(0, 0)' }}
+            >
+              ↗
+            </a>
+          )}
+        </div>
 
       <h3
         style={{
@@ -275,12 +307,14 @@ function SmallProject({ project, delay }) {
           <Tag key={tag}>{tag}</Tag>
         ))}
       </div>
+      </div>
     </div>
   )
 }
 
 export default function Projects() {
   const [projects, setProjects] = useState([])
+  const [selectedProject, setSelectedProject] = useState(null)
 
   useEffect(() => {
     supabase.from('projects').select('*').order('created_at', { ascending: false }).then(({ data }) => {
@@ -340,20 +374,25 @@ export default function Projects() {
           </h2>
         </div>
 
-        {featured && <FeaturedProject project={featured} />}
+        {featured && <FeaturedProject project={featured} onClick={() => setSelectedProject(featured)} />}
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '1rem',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '1.5rem',
           }}
         >
           {small.map((project, i) => (
-            <SmallProject key={project.id} project={project} delay={0.2 + i * 0.15} />
+            <SmallProject key={project.id} project={project} delay={0.2 + i * 0.15} onClick={() => setSelectedProject(project)} />
           ))}
         </div>
       </div>
+
+      <ProjectModal 
+        project={selectedProject} 
+        onClose={() => setSelectedProject(null)} 
+      />
     </section>
   )
 }

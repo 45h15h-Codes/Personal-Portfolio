@@ -115,6 +115,7 @@ export default function SkillsAdmin() {
                 <option value="frontend">Frontend</option>
                 <option value="backend">Backend</option>
                 <option value="tools">Tools & DevOps</option>
+                <option value="databases & infrastructure">Databases & Infrastructure</option>
              </select>
           </div>
 

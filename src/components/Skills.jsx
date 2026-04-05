@@ -6,9 +6,13 @@ const CATEGORY_COLORS = {
   Backend: 'var(--red)',
   DevOps: 'var(--ink)',
   '3D': 'var(--yellow)',
+  Tools: 'var(--ink)',
   Other: 'var(--red)',
   Animation: 'var(--yellow)',
-  Tools: 'var(--ink)'
+  frontend: 'var(--yellow)',
+  backend: 'var(--red)',
+  tools: 'var(--ink)',
+  'databases & infrastructure': 'var(--ink)'
 }
 
 function SkillCard({ skill, delay }) {

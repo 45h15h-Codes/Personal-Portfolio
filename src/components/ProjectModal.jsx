@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef, useMemo } from 'react';
 import gsap from 'gsap';
 
 function Tag({ children }) {
@@ -6,7 +6,7 @@ function Tag({ children }) {
     <span
       style={{
         fontFamily: 'var(--font-mono)',
-        fontSize: '0.65rem',
+        fontSize: '0.6rem',
         fontWeight: 700,
         color: 'var(--ink)',
         border: 'var(--border)',
@@ -22,31 +22,197 @@ function Tag({ children }) {
   )
 }
 
+/* ============================================
+   SIMPLE MARKDOWN RENDERER
+   Handles: # headings, **bold**, *italic*,
+   `code`, - lists, \n paragraphs
+   ============================================ */
+function renderMarkdown(text) {
+  if (!text) return null
+
+  const lines = text.split('\n')
+  const elements = []
+  let listItems = []
+  let key = 0
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`list-${key++}`} style={{ margin: '0.75rem 0', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          {listItems.map((item, i) => (
+            <li key={i} style={{ fontSize: '0.95rem', lineHeight: 1.7, color: 'var(--ink)' }}>
+              {formatInline(item)}
+            </li>
+          ))}
+        </ul>
+      )
+      listItems = []
+    }
+  }
+
+  const formatInline = (str) => {
+    // Process inline formatting: **bold**, *italic*, `code`
+    const parts = []
+    let remaining = str
+    let partKey = 0
+
+    while (remaining.length > 0) {
+      // Bold **text**
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*/)
+      // Italic *text*
+      const italicMatch = remaining.match(/(?<!\*)\*([^*]+?)\*(?!\*)/)
+      // Inline code `text`
+      const codeMatch = remaining.match(/`(.+?)`/)
+
+      // Find the earliest match
+      const matches = [
+        boldMatch && { type: 'bold', match: boldMatch },
+        italicMatch && { type: 'italic', match: italicMatch },
+        codeMatch && { type: 'code', match: codeMatch },
+      ].filter(Boolean).sort((a, b) => a.match.index - b.match.index)
+
+      if (matches.length === 0) {
+        parts.push(remaining)
+        break
+      }
+
+      const first = matches[0]
+      const before = remaining.slice(0, first.match.index)
+      if (before) parts.push(before)
+
+      if (first.type === 'bold') {
+        parts.push(<strong key={partKey++} style={{ fontWeight: 800 }}>{first.match[1]}</strong>)
+      } else if (first.type === 'italic') {
+        parts.push(<em key={partKey++}>{first.match[1]}</em>)
+      } else if (first.type === 'code') {
+        parts.push(
+          <code key={partKey++} style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.85em',
+            backgroundColor: 'rgba(10,10,10,0.08)',
+            padding: '0.15rem 0.4rem',
+            border: '1px solid rgba(10,10,10,0.15)',
+            fontWeight: 600,
+          }}>
+            {first.match[1]}
+          </code>
+        )
+      }
+
+      remaining = remaining.slice(first.match.index + first.match[0].length)
+    }
+
+    return parts.length === 1 && typeof parts[0] === 'string' ? parts[0] : parts
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+
+    // Empty line
+    if (line === '') {
+      flushList()
+      continue
+    }
+
+    // Headings
+    if (line.startsWith('### ')) {
+      flushList()
+      elements.push(
+        <h5 key={key++} style={{
+          fontFamily: 'var(--font-display)',
+          fontWeight: 800,
+          fontSize: '1rem',
+          color: 'var(--ink)',
+          marginTop: '1.5rem',
+          marginBottom: '0.5rem',
+        }}>
+          {formatInline(line.slice(4))}
+        </h5>
+      )
+    } else if (line.startsWith('## ')) {
+      flushList()
+      elements.push(
+        <h4 key={key++} style={{
+          fontFamily: 'var(--font-display)',
+          fontWeight: 900,
+          fontSize: '1.15rem',
+          color: 'var(--ink)',
+          marginTop: '2rem',
+          marginBottom: '0.75rem',
+          paddingBottom: '0.4rem',
+          borderBottom: '2px solid var(--ink)',
+          display: 'inline-block',
+        }}>
+          {formatInline(line.slice(3))}
+        </h4>
+      )
+    } else if (line.startsWith('# ')) {
+      flushList()
+      // Skip top-level heading if it matches the project title
+      elements.push(
+        <h3 key={key++} style={{
+          fontFamily: 'var(--font-display)',
+          fontWeight: 900,
+          fontSize: '1.35rem',
+          color: 'var(--ink)',
+          marginTop: '2rem',
+          marginBottom: '0.75rem',
+        }}>
+          {formatInline(line.slice(2))}
+        </h3>
+      )
+    }
+    // List items
+    else if (line.startsWith('- ') || line.startsWith('* ')) {
+      listItems.push(line.slice(2))
+    }
+    // Regular paragraph
+    else {
+      flushList()
+      elements.push(
+        <p key={key++} style={{
+          fontSize: '0.95rem',
+          lineHeight: 1.8,
+          color: 'var(--ink)',
+          marginBottom: '0.75rem',
+        }}>
+          {formatInline(line)}
+        </p>
+      )
+    }
+  }
+
+  flushList()
+  return elements
+}
+
 export default function ProjectModal({ project, onClose }) {
   const overlayRef = useRef(null);
   const modalRef = useRef(null);
 
+  const description = useMemo(() => {
+    if (!project) return null
+    return renderMarkdown(project.detailed_description || project.description)
+  }, [project])
+
   useLayoutEffect(() => {
     if (!project) return;
 
-    // Esc key handling
     const handleEsc = (e) => {
       if (e.key === 'Escape') handleClose();
     };
     window.addEventListener('keydown', handleEsc);
 
-    // Entrance animations
-    gsap.fromTo(overlayRef.current, 
+    gsap.fromTo(overlayRef.current,
       { backdropFilter: 'blur(0px)', backgroundColor: 'rgba(0,0,0,0)', opacity: 0 },
-      { backdropFilter: 'blur(12px)', backgroundColor: 'rgba(0,0,0,0.5)', opacity: 1, duration: 0.4, ease: 'power2.out' }
+      { backdropFilter: 'blur(14px)', backgroundColor: 'rgba(0,0,0,0.55)', opacity: 1, duration: 0.4, ease: 'power2.out' }
     );
-    
+
     gsap.fromTo(modalRef.current,
-      { y: 50, opacity: 0, rotateX: 5, perspective: 1000 },
-      { y: 0, opacity: 1, rotateX: 0, duration: 0.5, ease: 'back.out(1.1)', delay: 0.1 }
+      { y: 60, opacity: 0, scale: 0.97 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.2)', delay: 0.1 }
     );
-    
-    // Prevent scrolling on background
+
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'auto';
@@ -55,14 +221,16 @@ export default function ProjectModal({ project, onClose }) {
   }, [project]);
 
   const handleClose = () => {
-    gsap.to(overlayRef.current, { backdropFilter: 'blur(0px)', backgroundColor: 'rgba(0,0,0,0)', duration: 0.3 });
-    gsap.to(modalRef.current, { y: 20, opacity: 0, duration: 0.3, onComplete: onClose });
+    gsap.to(overlayRef.current, { backdropFilter: 'blur(0px)', backgroundColor: 'rgba(0,0,0,0)', opacity: 0, duration: 0.3 });
+    gsap.to(modalRef.current, { y: 30, opacity: 0, scale: 0.97, duration: 0.3, onComplete: onClose });
   };
 
   if (!project) return null;
 
+  const year = new Date(project.created_at).getFullYear()
+
   return (
-    <div 
+    <div
       ref={overlayRef}
       style={{
         position: 'fixed',
@@ -74,127 +242,362 @@ export default function ProjectModal({ project, onClose }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 'clamp(1rem, 5vw, 3rem)',
-        opacity: 0, // initially hide until GSAP
+        padding: 'clamp(0.75rem, 3vw, 2rem)',
+        opacity: 0,
       }}
       onClick={handleClose}
     >
-      <div 
+      <div
         ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '1000px',
-          maxHeight: '90vh',
+          maxWidth: '1050px',
+          maxHeight: '92vh',
           backgroundColor: 'var(--bg)',
-          border: 'var(--border)',
-          boxShadow: '16px 16px 0 rgba(0,0,0,0.8)',
+          border: '3px solid var(--ink)',
+          boxShadow: '12px 12px 0 var(--ink)',
           overflowY: 'auto',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
           willChange: 'transform, opacity',
-          opacity: 0, // initially hide until GSAP
-          transform: 'translateY(50px)'
+          opacity: 0,
+          transform: 'translateY(60px)',
         }}
       >
-        {/* Close Button */}
-        <button 
-          onClick={handleClose}
-          style={{
-            position: 'absolute',
-            top: '1rem',
-            right: '1rem',
-            zIndex: 10,
-            background: 'var(--red)',
-            color: '#fff',
-            border: 'var(--border)',
-            width: '40px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 900,
-            fontSize: '1.2rem',
-            boxShadow: '4px 4px 0 var(--ink)',
-            transition: 'transform 0.1s',
-          }}
-          onMouseDown={(e) => { e.currentTarget.style.transform = 'translate(2px, 2px)'; e.currentTarget.style.boxShadow = '2px 2px 0 var(--ink)'; }}
-          onMouseUp={(e) => { e.currentTarget.style.transform = 'translate(0, 0)'; e.currentTarget.style.boxShadow = '4px 4px 0 var(--ink)'; }}
-        >
-          ✕
-        </button>
-
-        {/* Header / Thumbnail Area */}
+        {/* ============================================
+            HERO HEADER — Matches the asymmetric card
+            ============================================ */}
         <div style={{
-          width: '100%',
-          height: 'clamp(150px, 25vh, 250px)',
-          backgroundColor: 'var(--yellow)',
-          borderBottom: 'var(--border)',
-          overflow: 'hidden',
+          display: 'grid',
+          gridTemplateColumns: project.thumbnail ? '1.1fr 1fr' : '1fr',
+          minHeight: 'clamp(240px, 35vh, 340px)',
+          backgroundColor: 'var(--ink)',
+          borderBottom: '3px solid var(--ink)',
           position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0
+          overflow: 'hidden',
+          flexShrink: 0,
         }}>
-          {project.thumbnail ? (
-            <img 
-              src={project.thumbnail} 
-              alt={project.title} 
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-            />
-          ) : (
-             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 4rem)', color: 'var(--ink)' }}>
-               {project.title}
-             </h2>
+          {/* Decorative Corner Triangle — matching card */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '90px',
+              height: '90px',
+              backgroundColor: 'var(--red)',
+              clipPath: 'polygon(100% 0, 100% 100%, 0 0)',
+              zIndex: 10,
+            }}
+          />
+
+          {/* Close Button — positioned over the corner */}
+          <button
+            onClick={handleClose}
+            style={{
+              position: 'absolute',
+              top: '0.75rem',
+              right: '0.75rem',
+              zIndex: 20,
+              background: 'transparent',
+              color: '#fff',
+              border: 'none',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 900,
+              fontSize: '1.1rem',
+              transition: 'transform 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.2)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            ✕
+          </button>
+
+          {/* Thumbnail — Left */}
+          {project.thumbnail && (
+            <div style={{
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden',
+              borderRight: '3px solid var(--ink)',
+            }}>
+              <img
+                src={project.thumbnail}
+                alt={project.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            </div>
           )}
+
+          {/* Content — Right side of header */}
+          <div style={{
+            padding: 'clamp(1.5rem, 3vw, 2.5rem)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            gap: '0.85rem',
+            position: 'relative',
+          }}>
+            {/* Featured badge + Year — matching card */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {project.featured && (
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    color: 'var(--ink)',
+                    backgroundColor: 'var(--yellow)',
+                    border: '2px solid var(--ink)',
+                    padding: '0.2rem 0.6rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                    boxShadow: '2px 2px 0 rgba(0,0,0,0.3)',
+                  }}
+                >
+                  ★ Featured
+                </span>
+              )}
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.65rem',
+                color: 'rgba(255,255,255,0.4)',
+              }}>
+                {year}
+              </span>
+            </div>
+
+            {/* Title */}
+            <h2
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 900,
+                fontSize: 'clamp(1.4rem, 2.8vw, 2rem)',
+                color: '#fff',
+                lineHeight: 1.1,
+                margin: 0,
+              }}
+            >
+              {project.title}
+            </h2>
+
+            {/* Short description in header */}
+            <p style={{
+              color: 'rgba(255,255,255,0.55)',
+              fontSize: '0.85rem',
+              lineHeight: 1.65,
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              margin: 0,
+            }}>
+              {project.description}
+            </p>
+
+            {/* Tags */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+              {project.tags?.map(tag => (
+                <span
+                  key={tag}
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.55rem',
+                    fontWeight: 700,
+                    color: 'var(--ink)',
+                    border: '2px solid var(--bg)',
+                    padding: '0.15rem 0.45rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    backgroundColor: 'var(--bg)',
+                    display: 'inline-block',
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            {/* Action Buttons — matching card style */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
+              {project.github_link && (
+                <a
+                  href={project.github_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    fontSize: '0.7rem',
+                    color: 'var(--ink)',
+                    backgroundColor: 'var(--yellow)',
+                    padding: '0.5rem 1rem',
+                    border: '2px solid var(--bg)',
+                    boxShadow: '3px 3px 0 var(--bg)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    transition: 'all 0.2s ease',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translate(-2px, -2px)'
+                    e.currentTarget.style.boxShadow = '5px 5px 0 var(--bg)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translate(0, 0)'
+                    e.currentTarget.style.boxShadow = '3px 3px 0 var(--bg)'
+                  }}
+                >
+                  GitHub →
+                </a>
+              )}
+              {project.demo_link && (
+                <a
+                  href={project.demo_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    fontSize: '0.7rem',
+                    color: '#fff',
+                    backgroundColor: 'transparent',
+                    padding: '0.5rem 1rem',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    transition: 'all 0.2s ease',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
+                >
+                  Demo ↗
+                </a>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Content Area */}
-        <div style={{ padding: 'clamp(1.5rem, 4vw, 3rem)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', color: 'var(--ink)', margin: 0, lineHeight: 1.1 }}>
-               {project.title}
-             </h2>
-             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {project.github_link && (
-                  <a href={project.github_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)', fontWeight: 700, backgroundColor: 'var(--ink)', color: '#fff', padding: '0.3rem 0.8rem', border: 'var(--border)' }}>CODE</a>
-                )}
-                {project.demo_link && (
-                  <a href={project.demo_link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)', fontWeight: 700, backgroundColor: 'var(--yellow)', color: 'var(--ink)', padding: '0.3rem 0.8rem', border: 'var(--border)' }}>DEMO</a>
-                )}
-             </div>
-          </div>
-          
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}>
-            {project.tags?.map(tag => <Tag key={tag}>{tag}</Tag>)}
-          </div>
-
-          <p style={{ fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.8, color: 'var(--ink)', marginBottom: '2rem', whiteSpace: 'pre-wrap' }}>
-            {project.detailed_description || project.description}
-          </p>
+        {/* ============================================
+            BODY CONTENT
+            ============================================ */}
+        <div style={{
+          padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+          flex: 1,
+        }}>
+          {/* Detailed Description — rendered as formatted markdown */}
+          {project.detailed_description && (
+            <div style={{ marginBottom: '2.5rem' }}>
+              {description}
+            </div>
+          )}
 
           {/* Gallery Area */}
           {project.images && project.images.length > 0 && (
             <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '1.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--ink)', paddingBottom: '0.5rem', display: 'inline-block' }}>
-                Gallery
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                marginBottom: '1.5rem',
+              }}>
+                <h3 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 900,
+                  fontSize: '1.35rem',
+                  color: 'var(--ink)',
+                  margin: 0,
+                }}>
+                  Gallery
+                </h3>
+                <div style={{
+                  flex: 1,
+                  height: '2px',
+                  backgroundColor: 'var(--ink)',
+                }} />
+                <span style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  color: 'var(--light-muted)',
+                  textTransform: 'uppercase',
+                }}>
+                  {project.images.length} {project.images.length === 1 ? 'image' : 'images'}
+                </span>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: project.images.length === 1
+                  ? '1fr'
+                  : project.images.length === 2
+                    ? 'repeat(2, 1fr)'
+                    : 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1.25rem',
+              }}>
                 {project.images.map((img, idx) => (
-                  <div key={idx} style={{ border: 'var(--border)', boxShadow: '6px 6px 0 rgba(0,0,0,0.8)', overflow: 'hidden', backgroundColor: 'var(--bg)', aspectRatio: '4/3' }}>
-                    <img src={img} alt={`Gallery ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+                  <div
+                    key={idx}
+                    style={{
+                      border: 'var(--border)',
+                      boxShadow: 'var(--shadow)',
+                      overflow: 'hidden',
+                      backgroundColor: 'var(--bg)',
+                      aspectRatio: '16/10',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translate(-2px, -2px)'
+                      e.currentTarget.style.boxShadow = 'var(--shadow-lg)'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translate(0, 0)'
+                      e.currentTarget.style.boxShadow = 'var(--shadow)'
+                    }}
+                  >
+                    <img
+                      src={img}
+                      alt={`${project.title} - Screenshot ${idx + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                      loading="lazy"
+                    />
                   </div>
                 ))}
               </div>
             </div>
           )}
-
         </div>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        @media (max-width: 768px) {
+          div[ref] > div > div:first-child {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }

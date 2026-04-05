@@ -243,28 +243,21 @@ function FeaturedCard({ project, onClick }) {
 /* ============================================
    ASYMMETRIC PROJECT CARD
    ============================================ */
-function ProjectCard({ project, size = 'normal', delay = 0, onClick, rotation = 0 }) {
+function ProjectCard({ project, size = 'normal', delay = 0, onClick }) {
   const year = new Date(project.created_at).getFullYear()
   const isWide = size === 'wide'
-  const isTall = size === 'tall'
-
-  const gridStyles = {
-    wide: { gridColumn: 'span 2' },
-    tall: { gridColumn: 'span 1', gridRow: 'span 2' },
-    normal: { gridColumn: 'span 1' },
-  }
 
   return (
     <div
       onClick={onClick}
       style={{
-        ...gridStyles[size],
+        gridColumn: isWide ? 'span 2' : 'span 1',
         backgroundColor: 'var(--bg)',
         border: 'var(--border)',
         boxShadow: 'var(--shadow)',
         position: 'relative',
         overflow: 'hidden',
-        display: isTall ? 'flex' : (isWide ? 'grid' : 'flex'),
+        display: isWide ? 'grid' : 'flex',
         flexDirection: 'column',
         gridTemplateColumns: isWide ? '1.2fr 1fr' : undefined,
         opacity: 0,
@@ -272,19 +265,18 @@ function ProjectCard({ project, size = 'normal', delay = 0, onClick, rotation = 
         willChange: 'transform',
         cursor: 'pointer',
         transition: 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-        transform: `rotate(${rotation}deg)`,
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = `rotate(0deg) translate(-3px, -3px)`
+        e.currentTarget.style.transform = 'translate(-3px, -3px)'
         e.currentTarget.style.boxShadow = '8px 8px 0px rgba(10,10,10,0.9)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.transform = `rotate(${rotation}deg) translate(0, 0)`
+        e.currentTarget.style.transform = 'translate(0, 0)'
         e.currentTarget.style.boxShadow = 'var(--shadow)'
       }}
     >
-      {/* Decorative accent */}
-      {(isWide || isTall) && (
+      {/* Decorative accent for wide cards */}
+      {isWide && (
         <div
           aria-hidden="true"
           style={{
@@ -305,8 +297,8 @@ function ProjectCard({ project, size = 'normal', delay = 0, onClick, rotation = 
       <div
         style={{
           width: '100%',
-          height: isTall ? '55%' : isWide ? '100%' : '170px',
-          minHeight: isTall ? '200px' : isWide ? '200px' : '140px',
+          height: isWide ? '100%' : '180px',
+          minHeight: isWide ? '200px' : '150px',
           backgroundColor: 'var(--yellow)',
           borderBottom: !isWide ? 'var(--border)' : 'none',
           borderRight: isWide ? 'var(--border)' : 'none',
@@ -341,7 +333,7 @@ function ProjectCard({ project, size = 'normal', delay = 0, onClick, rotation = 
             <span
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: isTall ? '6rem' : '4rem',
+                fontSize: '4rem',
                 fontWeight: 900,
                 color: 'var(--ink)',
               }}
@@ -355,7 +347,7 @@ function ProjectCard({ project, size = 'normal', delay = 0, onClick, rotation = 
       {/* Content */}
       <div
         style={{
-          padding: isTall ? '1.25rem' : '1.25rem 1.5rem',
+          padding: '1.25rem 1.5rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.6rem',
@@ -417,7 +409,7 @@ function ProjectCard({ project, size = 'normal', delay = 0, onClick, rotation = 
             lineHeight: 1.6,
             flex: 1,
             display: '-webkit-box',
-            WebkitLineClamp: isTall ? 6 : isWide ? 4 : 3,
+            WebkitLineClamp: isWide ? 4 : 3,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
           }}
@@ -439,21 +431,27 @@ function ProjectCard({ project, size = 'normal', delay = 0, onClick, rotation = 
 }
 
 /* ============================================
-   SIZE + ROTATION PATTERNS
+   SIZE PATTERNS — no tall cards to avoid gaps
    ============================================ */
 function getCardSize(index, total) {
   if (total === 1) return 'wide'
   if (total === 2) return index === 0 ? 'wide' : 'normal'
-  
-  // Asymmetric pattern that creates visual rhythm
-  const patterns = ['tall', 'normal', 'wide', 'normal', 'normal', 'tall', 'wide', 'normal']
-  return patterns[index % patterns.length]
-}
 
-function getCardRotation(index) {
-  // Subtle random-looking rotations for organic feel
-  const rotations = [0.4, -0.3, 0, 0.5, -0.4, 0, 0.3, -0.5]
-  return rotations[index % rotations.length]
+  // Pattern: wide, normal, normal — fills a 3-col grid perfectly
+  // Every 3 items = one row with 1 wide + gap, then 2 normals
+  // Alternate: normal, normal, wide for variety
+  const row = Math.floor(index / 3)
+  const posInRow = index % 3
+  
+  if (row % 2 === 0) {
+    // Even rows: wide first, then 2 normals (but wide only fills 2 cols + 1 normal)
+    // Actually: [wide(2col), normal(1col)] = 3 cols ✓ 
+    // Then next needs to be [normal, normal, normal] or [normal, wide]
+    return posInRow === 0 ? 'wide' : 'normal'
+  } else {
+    // Odd rows: normal first, then wide
+    return posInRow === 2 ? 'wide' : 'normal'
+  }
 }
 
 /* ============================================
@@ -537,7 +535,6 @@ export default function Projects() {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gridAutoRows: 'minmax(280px, auto)',
               gap: '1.5rem',
             }}
           >
@@ -547,7 +544,6 @@ export default function Projects() {
                 project={project}
                 size={getCardSize(i, others.length)}
                 delay={0.15 + i * 0.12}
-                rotation={getCardRotation(i)}
                 onClick={() => setSelectedProject(project)}
               />
             ))}
@@ -577,8 +573,6 @@ export default function Projects() {
           }
           .asymmetric-grid > div {
             grid-column: span 1 !important;
-            grid-row: span 1 !important;
-            transform: rotate(0deg) !important;
           }
         }
         @media (max-width: 600px) {
